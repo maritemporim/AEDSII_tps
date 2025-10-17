@@ -1,1 +1,1 @@
-# AEDSII_tps
+💡 Conjunto de trabalhos práticos realizados durante a disciplina de Algoritmos e Estruturas de Dados II, explorando conceitos avançados de programação e estruturas de dados.
