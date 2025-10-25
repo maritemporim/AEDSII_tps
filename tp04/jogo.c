@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-// Estrutura PRINCIPAL mantida EXATAMENTE como original
 typedef struct {
     int id;
     char* name;
@@ -26,19 +25,16 @@ typedef struct {
     int numGenres;
     char** tags;
     int numTags;
-} Game; // Nome da struct também mantido
+} Game;
 
-// Protótipos de Funções com Nomes Customizados
 int converteParaInt(const char* s);
 float converteParaFloat(const char* s);
 char* formatarData(const char* entradaBruta);
 char** extrairLista(const char* entradaBruta, int* contador);
 char** quebrarCSV(const char* linha, int* contadorCampos);
-void imprimirInfoJogo(const Game* info); // Nome da struct no parâmetro é Game
-void liberarMemoriaJogo(Game* info); // Nome da struct no parâmetro é Game
+void imprimirInfoJogo(const Game* info); 
+void liberarMemoriaJogo(Game* info); 
 char* limparEspacos(const char* str);
-
-// Implementação das Funções (apenas contadores e variáveis locais modificados)
 
 int converteParaInt(const char* s) {
     if (s == NULL) return 0;

@@ -28,38 +28,43 @@ typedef struct {
     int numTags;
 } Game;
 
-int converteParaInt(const char* s);
+int   converteParaInt(const char* s);
 float converteParaFloat(const char* s);
 char* formatarData(const char* entradaBruta);
 char** extrairLista(const char* entradaBruta, int* contador);
 char** quebrarCSV(const char* linha, int* contadorCampos);
-void imprimirInfoJogo(const Game* info); 
-void liberarMemoriaJogo(Game* info); 
+void  imprimirInfoJogo(const Game* info);
+void  liberarMemoriaJogo(Game* info);
 char* limparEspacos(const char* str);
 
+// contadores
 static long long QS_comparacoes = 0;
 static long long QS_movimentacoes = 0;
 
+// converte "DD/MM/AAAA" para inteiro AAAMMDD 
 static int dataParaChave(const char* ddmmyyyy) {
     if (!ddmmyyyy || strlen(ddmmyyyy) != 10) return 0;
     int d = (ddmmyyyy[0]-'0')*10 + (ddmmyyyy[1]-'0');
     int m = (ddmmyyyy[3]-'0')*10 + (ddmmyyyy[4]-'0');
     int y = (ddmmyyyy[6]-'0')*1000 + (ddmmyyyy[7]-'0')*100 + (ddmmyyyy[8]-'0')*10 + (ddmmyyyy[9]-'0');
+    (void)d;
     return y*10000 + m*100 + d;
 }
 
+// comparação entre ponteiros de Game
 static int cmpGamePtr(Game* const* a, Game* const* b) {
     QS_comparacoes++;
     int ka = dataParaChave((*a)->releaseDate);
     int kb = dataParaChave((*b)->releaseDate);
     if (ka < kb) return -1;
     if (ka > kb) return 1;
-    QS_comparacoes++;
+    QS_comparacoes++; // conta o desempate por id também
     if ((*a)->id < (*b)->id) return -1;
     if ((*a)->id > (*b)->id) return 1;
     return 0;
 }
 
+// swap de ponteiros com contagem de movimentações
 static void swapPtr(Game** a, Game** b) {
     if (a == b) return;
     Game* t = *a; *a = *b; *b = t;
@@ -79,6 +84,7 @@ static int partitionPtr(Game** v, int lo, int hi) {
     return i;
 }
 
+// quicksort
 static void quicksortPtr(Game** v, int lo, int hi) {
     if (lo < hi) {
         int p = partitionPtr(v, lo, hi);
@@ -87,6 +93,7 @@ static void quicksortPtr(Game** v, int lo, int hi) {
     }
 }
 
+// parses
 int converteParaInt(const char* s) {
     if (s == NULL) return 0;
     char* strLimpa = limparEspacos(s);
@@ -119,6 +126,7 @@ char* limparEspacos(const char* str) {
     return strdup("");
 }
 
+// conversão de data
 char* formatarData(const char* entradaBruta) {
     if (entradaBruta == NULL || entradaBruta[0] == '\0') return strdup("01/01/0000");
     char temp_raw[256];
@@ -136,6 +144,7 @@ char* formatarData(const char* entradaBruta) {
 
     char diaStr[3] = "01", mesStr[3] = "01", anoStr[5] = "0000";
     char* partesData[3]; int num_elementos = 0;
+
     char* pedaco = strtok(strLimpa, " ");
     while (pedaco != NULL && num_elementos < 3) { partesData[num_elementos++] = strdup(pedaco); pedaco = strtok(NULL, " "); }
 
@@ -159,9 +168,11 @@ char* formatarData(const char* entradaBruta) {
     return data_final;
 }
 
+// tira colchetes/aspas 
 char** extrairLista(const char* entradaBruta, int* contador) {
     *contador = 0;
     if (entradaBruta == NULL || entradaBruta[0] == '\0') return NULL;
+
     char temp[4096]; size_t tamanho = strlen(entradaBruta); int j = 0;
     for (size_t k = 0; k < tamanho; k++)
         if (entradaBruta[k] != '[' && entradaBruta[k] != ']' && entradaBruta[k] != '\'' && entradaBruta[k] != '"')
@@ -186,6 +197,7 @@ char** extrairLista(const char* entradaBruta, int* contador) {
     return lista;
 }
 
+// separa a linha do CSV respeitando aspas
 char** quebrarCSV(const char* linha, int* contadorCampos) {
     *contadorCampos = 0;
     int maxElementos = 14;
@@ -214,18 +226,19 @@ char** quebrarCSV(const char* linha, int* contadorCampos) {
     return elementos;
 }
 
+// imprime
 void imprimirInfoJogo(const Game* info) {
-    printf("=> %d ## %s ## %s ## %d ## %.2f ## ", 
-            info->id, info->name, info->releaseDate, info->estimatedOwners, info->price);
+    printf("=> %d ## %s ## %s ## %d ## %.2f ## ",
+           info->id, info->name, info->releaseDate, info->estimatedOwners, info->price);
 
     printf("[");
     for (int j = 0; j < info->numSupportedLanguages; j++)
         printf("%s%s", info->supportedLanguages[j], (j == info->numSupportedLanguages - 1) ? "" : ", ");
     printf("] ## ");
 
-    printf("%d ## ", (int)info->mediaScore); 
+    printf("%d ## ", (int)info->mediaScore);
     printf("%.1f ## ", (float)info->achievements);
-    printf("%d ## ", (int)info->userScore); 
+    printf("%d ## ", (int)info->userScore);
 
     printf("[");
     for (int j = 0; j < info->numPublishers; j++)
@@ -253,25 +266,41 @@ void imprimirInfoJogo(const Game* info) {
     printf("] ##\n");
 }
 
+// libera tudo que foi alocado por registro 
 void liberarMemoriaJogo(Game* info) {
     if (info->name) free(info->name);
     if (info->releaseDate) free(info->releaseDate);
-    for (int j = 0; j < info->numSupportedLanguages; j++) free(info->supportedLanguages[j]);
-    free(info->supportedLanguages);
-    for (int j = 0; j < info->numPublishers; j++) free(info->publishers[j]);
-    free(info->publishers);
-    for (int j = 0; j < info->numDevelopers; j++) free(info->developers[j]);
-    free(info->developers);
-    for (int j = 0; j < info->numCategories; j++) free(info->categories[j]);
-    free(info->categories);
-    for (int j = 0; j < info->numGenres; j++) free(info->genres[j]);
-    free(info->genres);
-    for (int j = 0; j < info->numTags; j++) free(info->tags[j]);
-    free(info->tags);
+
+    if (info->supportedLanguages) {
+        for (int j = 0; j < info->numSupportedLanguages; j++) free(info->supportedLanguages[j]);
+        free(info->supportedLanguages);
+    }
+    if (info->publishers) {
+        for (int j = 0; j < info->numPublishers; j++) free(info->publishers[j]);
+        free(info->publishers);
+    }
+    if (info->developers) {
+        for (int j = 0; j < info->numDevelopers; j++) free(info->developers[j]);
+        free(info->developers);
+    }
+    if (info->categories) {
+        for (int j = 0; j < info->numCategories; j++) free(info->categories[j]);
+        free(info->categories);
+    }
+    if (info->genres) {
+        for (int j = 0; j < info->numGenres; j++) free(info->genres[j]);
+        free(info->genres);
+    }
+    if (info->tags) {
+        for (int j = 0; j < info->numTags; j++) free(info->tags[j]);
+        free(info->tags);
+    }
 }
 
 int main() {
     const char* caminhoArquivo = "/tmp/games.csv";
+
+    // carrega todos os jogos do CSV para um vetor
     Game* listaJogos = NULL;
     int totalJogos = 0, tamanhoLista = 100;
 
@@ -282,13 +311,16 @@ int main() {
     if (!arq) { free(listaJogos); return 1; }
 
     char linhaDados[4096];
+    // pula cabeçalho
     if (!fgets(linhaDados, sizeof(linhaDados), arq)) { fclose(arq); free(listaJogos); return 1; }
 
     while (fgets(linhaDados, sizeof(linhaDados), arq)) {
         size_t tamLinha = strlen(linhaDados);
         if (tamLinha > 0 && linhaDados[tamLinha - 1] == '\n') linhaDados[tamLinha - 1] = '\0';
 
-        int contCampos; char** camposCSV = quebrarCSV(linhaDados, &contCampos);
+        int contCampos; 
+        char** camposCSV = quebrarCSV(linhaDados, &contCampos);
+
         if (contCampos >= 14) {
             if (totalJogos >= tamanhoLista) {
                 tamanhoLista *= 2;
@@ -304,16 +336,17 @@ int main() {
                 listaJogos = temp;
             }
 
+            // mapeia os campos
             Game* g = &listaJogos[totalJogos];
             g->id = converteParaInt(camposCSV[0]);
-            g->name = strdup(camposCSV[1]); 
-            g->releaseDate = formatarData(camposCSV[2]);
+            g->name = strdup(camposCSV[1]);
+            g->releaseDate = formatarData(camposCSV[2]); // já fica DD/MM/YYYY
             g->estimatedOwners = converteParaInt(camposCSV[3]);
             g->price = converteParaFloat(camposCSV[4]);
             g->supportedLanguages = extrairLista(camposCSV[5], &g->numSupportedLanguages);
-            g->mediaScore = converteParaFloat(camposCSV[6]); 
-            g->achievements = converteParaInt(camposCSV[7]); 
-            g->userScore = converteParaFloat(camposCSV[8]); 
+            g->mediaScore = converteParaFloat(camposCSV[6]);
+            g->achievements = converteParaInt(camposCSV[7]);
+            g->userScore = converteParaFloat(camposCSV[8]);
             g->publishers = extrairLista(camposCSV[9], &g->numPublishers);
             g->developers = extrairLista(camposCSV[10], &g->numDevelopers);
             g->categories = extrairLista(camposCSV[11], &g->numCategories);
@@ -327,6 +360,7 @@ int main() {
     }
     fclose(arq);
 
+    // subset: ponteiros para os jogos que o usuário pedir por ID
     Game** subset = NULL;
     int nsubset = 0, cap = 64;
     subset = (Game**)malloc(cap * sizeof(Game*));
@@ -342,27 +376,36 @@ int main() {
         size_t tamBusca = strlen(idBusca);
         if (tamBusca > 0 && idBusca[tamBusca - 1] == '\n') idBusca[tamBusca - 1] = '\0';
         if (strcmp(idBusca, "FIM") == 0) break;
+
         int id = converteParaInt(idBusca);
         for (int j = 0; j < totalJogos; j++) {
             if (listaJogos[j].id == id) {
                 if (nsubset >= cap) {
                     cap *= 2;
                     Game** tmp = (Game**)realloc(subset, cap * sizeof(Game*));
-                    if (!tmp) { free(subset); for (int k=0;k<totalJogos;k++) liberarMemoriaJogo(&listaJogos[k]); free(listaJogos); return 1; }
+                    if (!tmp) {
+                        free(subset);
+                        for (int k = 0; k < totalJogos; k++) liberarMemoriaJogo(&listaJogos[k]);
+                        free(listaJogos);
+                        return 1;
+                    }
                     subset = tmp;
                 }
                 subset[nsubset++] = &listaJogos[j];
-                break;
+                break; // achou o ID
             }
         }
     }
 
+    // ordena por Release_date (desempata por AppID) usando quicksort
     clock_t ini = clock();
     if (nsubset > 1) quicksortPtr(subset, 0, nsubset - 1);
     clock_t fim = clock();
 
+    // impressão
     for (int i = 0; i < nsubset; i++) imprimirInfoJogo(subset[i]);
 
+    // gera o log
     double tempo_ms = (double)(fim - ini) / CLOCKS_PER_SEC * 1000.0;
     FILE* log = fopen("885948_quicksort.txt", "w");
     if (log) {
@@ -370,6 +413,7 @@ int main() {
         fclose(log);
     }
 
+    // limpeza
     free(subset);
     for (int j = 0; j < totalJogos; j++) liberarMemoriaJogo(&listaJogos[j]);
     free(listaJogos);
